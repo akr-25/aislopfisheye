@@ -113,6 +113,7 @@ input[type="text"],input:not([type]){background:var(--bg);color:var(--text);bord
 
 /* ── overlay ── */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:100}
+.overlay[hidden]{display:none}
 .overlay-box{background:var(--surface);border-radius:var(--radius);padding:32px;text-align:center;max-width:340px;width:90%}
 .overlay-box h2{margin-bottom:8px}
 .overlay-box p{color:var(--muted);margin-bottom:20px}
