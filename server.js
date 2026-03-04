@@ -145,5 +145,5 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   const proto = useHttps ? 'https' : 'http';
   console.log(`🐟 FishCall server running → ${proto}://localhost:${PORT}`);
-  if (useHttps) console.log(`   On mobile (same WiFi): https://192.168.31.115:${PORT}  (accept the cert warning)`);
+  if (useHttps) console.log(`   On mobile (same WiFi): https://10.191.38.125:${PORT}  (accept the cert warning)`);
 });

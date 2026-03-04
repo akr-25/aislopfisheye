@@ -133,6 +133,20 @@ const app = {
 
   /* ════════════════  SERVERLESS MODE  ════════════════ */
 
+  /* ── wait for ICE gathering with timeout fallback ── */
+  _waitForICE(pc, callback) {
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      callback();
+    };
+    pc.onicecandidate = (e) => { if (!e.candidate) finish(); };
+    pc.onicegatheringstatechange = () => { if (pc.iceGatheringState === 'complete') finish(); };
+    // timeout: use whatever candidates we have after 6 seconds
+    setTimeout(finish, 6000);
+  },
+
   async slStart() {
     this.mode = 'serverless';
     this.showScreen('screen-sl-caller');
@@ -142,10 +156,8 @@ const app = {
       const pc = this.createPC();
       this.addTracks();
 
-      // trickle ICE off: wait for all candidates
-      pc.onicecandidate = (e) => {
-        if (e.candidate === null) this._slOfferReady();
-      };
+      // set ICE handler BEFORE setLocalDescription
+      this._waitForICE(pc, () => this._slOfferReady());
 
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
@@ -205,30 +217,26 @@ const app = {
       const pc = this.createPC();
       this.addTracks();
 
+      // set ICE handler BEFORE setLocalDescription to avoid missing candidates
+      this._waitForICE(pc, () => this._slAnswerReady());
+
       await pc.setRemoteDescription(new RTCSessionDescription(desc));
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
 
-      // when ICE gathering done, show answer
-      pc.onicecandidate = (e) => {
-        if (e.candidate === null) this._slAnswerReady();
-      };
-
-      // may already be done
-      if (pc.iceGatheringState === 'complete') this._slAnswerReady();
-
       // auto-navigate to call when connected
-      pc.oniceconnectionstatechange = () => {
+      pc.addEventListener('iceconnectionstatechange', () => {
         if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
           this.moveToCallScreen();
         }
-      };
+      });
     } catch (err) {
       this.showToast('Error: ' + err.message);
     }
   },
 
   async _slAnswerReady() {
+    if (!this.pc || !this.pc.localDescription) return;
     const encoded = await this.encodeSDP(this.pc.localDescription);
     document.getElementById('answer-output').value = encoded;
     document.getElementById('sl-ans-gen').hidden = true;
