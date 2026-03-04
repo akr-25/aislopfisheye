@@ -1,11 +1,22 @@
 const express = require('express');
 const http = require('http');
+const https = require('https');
+const fs = require('fs');
 const { WebSocketServer } = require('ws');
 const path = require('path');
 const crypto = require('crypto');
 
 const app = express();
-const server = http.createServer(app);
+
+// Use HTTPS if certs exist (required for getUserMedia on LAN IPs)
+const certPath = path.join(__dirname, 'certs', 'cert.pem');
+const keyPath  = path.join(__dirname, 'certs', 'key.pem');
+const useHttps = fs.existsSync(certPath) && fs.existsSync(keyPath);
+
+const server = useHttps
+  ? https.createServer({ cert: fs.readFileSync(certPath), key: fs.readFileSync(keyPath) }, app)
+  : http.createServer(app);
+
 const wss = new WebSocketServer({ server });
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -132,5 +143,7 @@ setInterval(() => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`🐟 FishCall server running → http://localhost:${PORT}`);
+  const proto = useHttps ? 'https' : 'http';
+  console.log(`🐟 FishCall server running → ${proto}://localhost:${PORT}`);
+  if (useHttps) console.log(`   On mobile (same WiFi): https://192.168.31.115:${PORT}  (accept the cert warning)`);
 });
