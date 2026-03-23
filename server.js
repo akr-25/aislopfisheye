@@ -169,9 +169,12 @@ setInterval(() => {
 }, 30000);
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
+server.listen(PORT, "0.0.0.0", () => {
   const proto = useHttps ? "https" : "http";
   console.log(`🐟 FishCall server running → ${proto}://localhost:${PORT}`);
+  console.log(
+    `   Listening on 0.0.0.0:${PORT} (set Railway target port to ${PORT})`,
+  );
   if (useHttps)
     console.log(
       `   On mobile (same WiFi): https://10.191.38.125:${PORT}  (accept the cert warning)`,
