@@ -1,6 +1,5 @@
 /* ── FisheyeRenderer: WebGL barrel-distortion filter ── */
-// eslint-disable-next-line no-unused-vars
-class FisheyeRenderer {
+export class FisheyeRenderer {
   constructor(videoEl, canvas) {
     this.video = videoEl;
     this.canvas = canvas;
@@ -8,13 +7,15 @@ class FisheyeRenderer {
     this.running = false;
     this._raf = null;
 
-    const gl = canvas.getContext('webgl', { premultipliedAlpha: false, preserveDrawingBuffer: true });
+    const gl = canvas.getContext('webgl', {
+      premultipliedAlpha: false,
+      preserveDrawingBuffer: true,
+    });
     if (!gl) throw new Error('WebGL not supported');
     this.gl = gl;
     this._init();
   }
 
-  /* ── shader setup ── */
   _init() {
     const gl = this.gl;
 
@@ -23,7 +24,7 @@ class FisheyeRenderer {
       varying vec2 v_uv;
       void main(){
         v_uv = a_pos * 0.5 + 0.5;
-        v_uv.y = 1.0 - v_uv.y;          // flip Y for video
+        v_uv.y = 1.0 - v_uv.y;
         gl_Position = vec4(a_pos, 0.0, 1.0);
       }`;
 
@@ -38,15 +39,13 @@ class FisheyeRenderer {
         vec2 d = v_uv - center;
         float r2 = dot(d, d);
 
-        // barrel distortion  (k > 0 ⇒ fisheye bulge)
         vec2 distorted = d * (1.0 + u_k * r2 + u_k * 0.5 * r2 * r2);
         vec2 uv = distorted + center;
 
-        // vignette
         float vig = 1.0 - smoothstep(0.35, 0.75, sqrt(r2));
 
-        if(uv.x<0.0||uv.x>1.0||uv.y<0.0||uv.y>1.0){
-          gl_FragColor = vec4(0,0,0,1);
+        if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
+          gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
         } else {
           gl_FragColor = texture2D(u_tex, uv) * vec4(vec3(vig), 1.0);
         }
@@ -66,15 +65,17 @@ class FisheyeRenderer {
     gl.useProgram(prog);
     this.prog = prog;
 
-    // full-screen quad
     const buf = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+    gl.bufferData(
+      gl.ARRAY_BUFFER,
+      new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]),
+      gl.STATIC_DRAW,
+    );
     const loc = gl.getAttribLocation(prog, 'a_pos');
     gl.enableVertexAttribArray(loc);
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
 
-    // texture
     this.tex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, this.tex);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -84,7 +85,9 @@ class FisheyeRenderer {
     this.uK = gl.getUniformLocation(prog, 'u_k');
   }
 
-  setStrength(v) { this.strength = v; }
+  setStrength(v) {
+    this.strength = v;
+  }
 
   start() {
     this.running = true;
@@ -93,7 +96,10 @@ class FisheyeRenderer {
 
   stop() {
     this.running = false;
-    if (this._raf) cancelAnimationFrame(this._raf);
+    if (this._raf) {
+      cancelAnimationFrame(this._raf);
+      this._raf = null;
+    }
   }
 
   getStream(fps = 30) {
@@ -106,7 +112,10 @@ class FisheyeRenderer {
     const v = this.video;
 
     if (v.readyState >= v.HAVE_CURRENT_DATA) {
-      if (this.canvas.width !== v.videoWidth || this.canvas.height !== v.videoHeight) {
+      if (
+        this.canvas.width !== v.videoWidth ||
+        this.canvas.height !== v.videoHeight
+      ) {
         this.canvas.width = v.videoWidth || 640;
         this.canvas.height = v.videoHeight || 480;
         gl.viewport(0, 0, this.canvas.width, this.canvas.height);

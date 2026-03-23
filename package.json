@@ -1,14 +1,19 @@
 {
   "name": "fishcall",
   "version": "1.0.0",
-  "description": "P2P Video Calling with Fisheye Filter – serverless and server modes",
+  "description": "FishCall – WebRTC video calling with fisheye filter",
   "main": "server.js",
   "scripts": {
+    "postinstall": "npm install --prefix client",
     "start": "node server.js",
-    "dev": "node server.js"
+    "build": "npm run build --prefix client",
+    "dev": "concurrently --names \"server,client\" --prefix-colors \"cyan,magenta\" \"node server.js\" \"npm run dev --prefix client\""
   },
   "dependencies": {
     "express": "^4.21.0",
     "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
   }
 }
