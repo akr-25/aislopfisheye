@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { HeliumAudio } from "./lib/helium.js";
 import Home from "./pages/Home.jsx";
 import WaitingRoom from "./pages/WaitingRoom.jsx";
