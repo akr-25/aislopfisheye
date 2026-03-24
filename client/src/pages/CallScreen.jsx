@@ -8,16 +8,17 @@ export default function CallScreen({
   fisheyeStrength,
   audioEnabled,
   videoEnabled,
+  heliumEnabled,
   onToggleFisheye,
   onStrengthChange,
   onToggleMute,
   onToggleCamera,
   onFlipCamera,
+  onToggleHelium,
   onHangUp,
 }) {
   return (
-    <div className={`call-screen${visible ? ' call-screen--visible' : ''}`}>
-
+    <div className={`call-screen${visible ? " call-screen--visible" : ""}`}>
       {/* Remote video – fills the screen */}
       <video
         ref={remoteVideoRef}
@@ -48,11 +49,10 @@ export default function CallScreen({
       {/* Controls bar */}
       <div className="call-controls">
         <div className="call-controls-row">
-
           {/* Fisheye toggle + slider */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <button
-              className={`btn btn-icon${fisheyeEnabled ? ' btn-icon--active' : ''}`}
+              className={`btn btn-icon${fisheyeEnabled ? " btn-icon--active" : ""}`}
               onClick={onToggleFisheye}
               aria-label="Toggle fisheye"
               title="Fisheye"
@@ -74,25 +74,38 @@ export default function CallScreen({
             )}
           </div>
 
+          {/* Helium voice */}
+          <button
+            className={`btn btn-icon${heliumEnabled ? " btn-icon--helium" : ""}`}
+            onClick={onToggleHelium}
+            aria-label={heliumEnabled ? "Helium off" : "Helium voice"}
+            title="Helium"
+          >
+            <span>🎈</span>
+            <span className="btn-label">Helium</span>
+          </button>
+
           {/* Mute */}
           <button
-            className={`btn btn-icon${!audioEnabled ? ' btn-icon--muted' : ''}`}
+            className={`btn btn-icon${!audioEnabled ? " btn-icon--muted" : ""}`}
             onClick={onToggleMute}
-            aria-label={audioEnabled ? 'Mute' : 'Unmute'}
-            title={audioEnabled ? 'Mute' : 'Unmute'}
+            aria-label={audioEnabled ? "Mute" : "Unmute"}
+            title={audioEnabled ? "Mute" : "Unmute"}
           >
-            <span>{audioEnabled ? '🎤' : '🔇'}</span>
-            <span className="btn-label">{audioEnabled ? 'Mute' : 'Unmute'}</span>
+            <span>{audioEnabled ? "🎤" : "🔇"}</span>
+            <span className="btn-label">
+              {audioEnabled ? "Mute" : "Unmute"}
+            </span>
           </button>
 
           {/* Camera on/off */}
           <button
-            className={`btn btn-icon${!videoEnabled ? ' btn-icon--muted' : ''}`}
+            className={`btn btn-icon${!videoEnabled ? " btn-icon--muted" : ""}`}
             onClick={onToggleCamera}
-            aria-label={videoEnabled ? 'Camera off' : 'Camera on'}
+            aria-label={videoEnabled ? "Camera off" : "Camera on"}
             title="Camera"
           >
-            <span>{videoEnabled ? '📷' : '🚫'}</span>
+            <span>{videoEnabled ? "📷" : "🚫"}</span>
             <span className="btn-label">Camera</span>
           </button>
 
@@ -116,10 +129,8 @@ export default function CallScreen({
           >
             <span>📞</span>
           </button>
-
         </div>
       </div>
-
     </div>
-  )
+  );
 }

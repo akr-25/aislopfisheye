@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
+import { HeliumAudio } from "./lib/helium.js";
 import Home from "./pages/Home.jsx";
 import WaitingRoom from "./pages/WaitingRoom.jsx";
 import JoinRoom from "./pages/JoinRoom.jsx";
@@ -29,6 +30,7 @@ export default function App() {
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [videoEnabled, setVideoEnabled] = useState(true);
   const [toast, setToast] = useState(null);
+  const [heliumEnabled, setHeliumEnabled] = useState(false);
 
   // ── mutable refs (don't trigger re-renders) ───────────────────────────
   const wsRef = useRef(null);
@@ -38,6 +40,7 @@ export default function App() {
   const uuidRef = useRef(null);
   const toastTimerRef = useRef(null);
   const facingModeRef = useRef("user");
+  const heliumRef = useRef(null);
 
   // mirror state → ref so async callbacks always see latest value
   const fisheyeEnabledRef = useRef(true);
@@ -267,6 +270,10 @@ export default function App() {
       fisheyeRef.current.stop();
       fisheyeRef.current = null;
     }
+    if (heliumRef.current) {
+      heliumRef.current.stop();
+      heliumRef.current = null;
+    }
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((t) => t.stop());
       localStreamRef.current = null;
@@ -281,6 +288,7 @@ export default function App() {
     setVideoEnabled(true);
     setFisheyeEnabled(true);
     setFisheyeStrength(0.5);
+    setHeliumEnabled(false);
   }, []);
   hangUpRef.current = hangUp;
 
@@ -354,6 +362,42 @@ export default function App() {
       fisheyeRef.current.setStrength(v);
     }
   }, []);
+
+  const toggleHelium = useCallback(async () => {
+    const next = !heliumEnabled;
+    try {
+      if (next) {
+        if (!localStreamRef.current) return;
+        const helium = new HeliumAudio();
+        const processed = await helium.process(localStreamRef.current);
+        heliumRef.current = helium;
+        // Replace the audio track being sent to the peer
+        if (pcRef.current) {
+          const audioTrack = processed.getAudioTracks()[0];
+          const sender = pcRef.current
+            .getSenders()
+            .find((s) => s.track?.kind === "audio");
+          if (sender && audioTrack) sender.replaceTrack(audioTrack);
+        }
+      } else {
+        if (heliumRef.current) {
+          heliumRef.current.stop();
+          heliumRef.current = null;
+        }
+        // Restore the original raw audio track
+        if (pcRef.current && localStreamRef.current) {
+          const audioTrack = localStreamRef.current.getAudioTracks()[0];
+          const sender = pcRef.current
+            .getSenders()
+            .find((s) => s.track?.kind === "audio");
+          if (sender && audioTrack) sender.replaceTrack(audioTrack);
+        }
+      }
+      setHeliumEnabled(next);
+    } catch (err) {
+      showToast("Helium unavailable: " + err.message);
+    }
+  }, [heliumEnabled, showToast]);
 
   const flipCamera = useCallback(async () => {
     try {
@@ -430,11 +474,13 @@ export default function App() {
         fisheyeStrength={fisheyeStrength}
         audioEnabled={audioEnabled}
         videoEnabled={videoEnabled}
+        heliumEnabled={heliumEnabled}
         onToggleFisheye={toggleFisheye}
         onStrengthChange={handleStrengthChange}
         onToggleMute={toggleMute}
         onToggleCamera={toggleCamera}
         onFlipCamera={flipCamera}
+        onToggleHelium={toggleHelium}
         onHangUp={hangUp}
       />
 
