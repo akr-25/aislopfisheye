@@ -6,22 +6,22 @@
  * by one grain and crossfade to remove the click. Result: same timing,
  * higher pitch → classic helium balloon voice.
  *
- * pitch > 1  →  higher pitch  (1.7 ≈ +9 semitones, clearly "helium")
+ * pitch > 1  →  higher pitch  (1.4 ≈ +6 semitones, natural helium)
  * pitch < 1  →  lower pitch
  */
 
 const BUF   = 8192   // circular buffer length (must be power-of-two)
 const MASK  = BUF - 1
-const GRAIN = 1024   // how far to jump back when re-syncing
-const FADE  = 256    // crossfade length in samples
+const GRAIN = 1536   // larger grain for smoother jumps
+const FADE  = 384    // longer crossfade for cleaner audio
 
 class HeliumProcessor extends AudioWorkletProcessor {
   static get parameterDescriptors () {
     return [{
       name: 'pitch',
-      defaultValue: 1.7,
-      minValue: 0.25,
-      maxValue: 4.0,
+      defaultValue: 1.4,
+      minValue: 0.5,
+      maxValue: 2.5,
       automationRate: 'k-rate',
     }]
   }

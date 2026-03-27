@@ -17,7 +17,7 @@ export default function JoinRoom({ onJoin, onCancel }) {
   }
 
   return (
-    <div className="page">
+    <div className="page page--top page--keyboard-safe">
       {/* Back */}
       <div className="nav-bar">
         <button className="nav-back btn" onClick={onCancel}>
@@ -29,7 +29,7 @@ export default function JoinRoom({ onJoin, onCancel }) {
         </button>
       </div>
 
-      <div className="stack stack--32 center max-400">
+      <div className="stack stack--32 center max-400" style={{ marginTop: '15vh' }}>
 
         {/* Heading */}
         <div className="stack stack--8 center">

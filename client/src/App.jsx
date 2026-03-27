@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { HeliumAudio } from "./lib/helium.js";
+import { addContact } from "./lib/contacts.js";
 import Home from "./pages/Home.jsx";
 import WaitingRoom from "./pages/WaitingRoom.jsx";
 import JoinRoom from "./pages/JoinRoom.jsx";
@@ -34,7 +35,7 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [canRejoin, setCanRejoin] = useState(false);
   const [lastRoomId, setLastRoomId] = useState(null);
-  const [pendingAction, setPendingAction] = useState(null); // 'create' | 'join' | { type: 'join', code: string }
+  const [pendingAction, setPendingAction] = useState(null); // 'create' | 'join' | { type: 'join', code: string } | { type: 'call', contact: object }
 
   // ── mutable refs ──────────────────────────────────────────────────────
   const wsRef = useRef(null);
@@ -45,6 +46,7 @@ export default function App() {
   const uuidRef = useRef(null);
   const toastTimerRef = useRef(null);
   const facingModeRef = useRef("user");
+  const peerInfoRef = useRef(null); // Store peer info for contact saving
 
   // CallScreen video/canvas – always in DOM so refs are always populated
   const remoteVideoRef = useRef(null);
@@ -65,6 +67,17 @@ export default function App() {
       localStorage.setItem("fishcall_uuid", uuid);
     }
     uuidRef.current = uuid;
+
+    // Check for join code in URL
+    const params = new URLSearchParams(window.location.search);
+    const joinCode = params.get("join");
+    if (joinCode) {
+      // Clear the URL param
+      window.history.replaceState({}, "", window.location.pathname);
+      // Go to preview with pending join action
+      setPendingAction({ type: "join", code: joinCode.toUpperCase() });
+      setScreen("preview");
+    }
   }, []);
 
   // ── toast ─────────────────────────────────────────────────────────────
@@ -220,15 +233,27 @@ export default function App() {
           break;
         case "peer-joined":
         case "peer-rejoined":
+          // Store peer info for contact saving
+          if (msg.nickname || msg.uuid) {
+            peerInfoRef.current = { id: msg.uuid, name: msg.nickname };
+          }
           startServerCallRef.current(true);
           break;
         case "signal":
           handleSignalRef.current(msg.data);
           break;
         case "peer-left":
+          // Save contact when call ends (if we have peer info)
+          if (peerInfoRef.current?.id) {
+            addContact(peerInfoRef.current.id, peerInfoRef.current.name);
+          }
           setCanRejoin(msg.canRejoin || false);
           setLastRoomId(msg.roomId || lastRoomId);
           hangUpRef.current("call-ended");
+          break;
+        case "peer-info":
+          // Server sends peer info when connection established
+          peerInfoRef.current = { id: msg.uuid, name: msg.nickname };
           break;
         case "error":
           showToast(msg.message);
@@ -267,6 +292,12 @@ export default function App() {
 
   // ── hang up / cleanup ─────────────────────────────────────────────────
   const hangUp = useCallback((goTo = "home") => {
+    // Save contact if we had a call with someone
+    if (peerInfoRef.current?.id && goTo === "call-ended") {
+      addContact(peerInfoRef.current.id, peerInfoRef.current.name);
+    }
+    peerInfoRef.current = null;
+
     if (pcRef.current) {
       pcRef.current.close();
       pcRef.current = null;

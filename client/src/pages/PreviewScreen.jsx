@@ -127,7 +127,7 @@ export default function PreviewScreen({ onReady, onCancel, actionLabel = "Join R
   }, [videoEnabled]);
 
   return (
-    <div className="page page--top">
+    <div className="page page--preview">
       <div className="nav-bar">
         <button className="nav-back btn" onClick={handleCancel}>
           <ChevronLeftIcon />
@@ -135,10 +135,10 @@ export default function PreviewScreen({ onReady, onCancel, actionLabel = "Join R
         </button>
       </div>
 
-      <div className="stack stack--24 center max-400" style={{ marginTop: 40 }}>
-        <div className="stack stack--8 center">
-          <h1 className="t-title1">Camera Preview</h1>
-          <p className="t-body t-secondary">Check how you look before joining</p>
+      <div className="preview-layout">
+        <div className="stack stack--4 center">
+          <h1 className="t-title2">Camera Preview</h1>
+          <p className="t-subhead t-secondary">Check how you look before joining</p>
         </div>
 
         {/* Camera preview with fisheye */}
@@ -159,9 +159,9 @@ export default function PreviewScreen({ onReady, onCancel, actionLabel = "Join R
         </div>
 
         {/* Audio level meter */}
-        <div className="stack stack--8 w-full">
+        <div className="stack stack--6 w-full max-400">
           <div className="test-label">
-            <MicIcon size={18} />
+            <MicIcon size={16} />
             <span>Microphone</span>
             <span className={`mic-status ${audioLevel > 0.05 ? "mic-status--active" : ""}`}>
               {audioLevel > 0.05 ? "Working" : "Silent"}
@@ -175,33 +175,36 @@ export default function PreviewScreen({ onReady, onCancel, actionLabel = "Join R
           </div>
         </div>
 
-        {/* Toggle controls */}
-        <div className="preview-toggles">
-          <button
-            className={`btn btn-icon btn-icon--sm${!audioEnabled ? " btn-icon--muted" : ""}`}
-            onClick={toggleMute}
-            title={audioEnabled ? "Mute" : "Unmute"}
-          >
-            {audioEnabled ? <MicIcon size={22} /> : <MicOffIcon size={22} />}
-          </button>
+        {/* Bottom controls */}
+        <div className="preview-bottom">
+          <div className="preview-toggles">
+            <button
+              className={`btn btn-icon btn-icon--sm${!audioEnabled ? " btn-icon--muted" : ""}`}
+              onClick={toggleMute}
+              title={audioEnabled ? "Mute" : "Unmute"}
+            >
+              {audioEnabled ? <MicIcon size={22} /> : <MicOffIcon size={22} />}
+            </button>
 
-          <button
-            className={`btn btn-icon btn-icon--sm${!videoEnabled ? " btn-icon--muted" : ""}`}
-            onClick={toggleVideo}
-            title={videoEnabled ? "Hide video" : "Show video"}
+            <button
+              className={`btn btn-icon btn-icon--sm${!videoEnabled ? " btn-icon--muted" : ""}`}
+              onClick={toggleVideo}
+              title={videoEnabled ? "Hide video" : "Show video"}
+            >
+              {videoEnabled ? <VideoIcon size={22} /> : <VideoOffIcon size={22} />}
+            </button>
+          </div>
+
+          {/* Action button */}
+          <button 
+            className="btn btn-primary" 
+            onClick={handleReady}
+            disabled={!cameraReady}
+            style={{ width: '100%', maxWidth: 280 }}
           >
-            {videoEnabled ? <VideoIcon size={22} /> : <VideoOffIcon size={22} />}
+            {actionLabel}
           </button>
         </div>
-
-        {/* Action button */}
-        <button 
-          className="btn btn-primary" 
-          onClick={handleReady}
-          disabled={!cameraReady}
-        >
-          {actionLabel}
-        </button>
       </div>
     </div>
   );

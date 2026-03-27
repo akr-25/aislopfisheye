@@ -23,10 +23,10 @@ export class HeliumAudio {
 
   /**
    * @param {MediaStream} inputStream  - the raw mic stream
-   * @param {number}      pitchFactor  - >1 = higher pitch (default 1.7 ≈ helium)
+   * @param {number}      pitchFactor  - >1 = higher pitch (default 1.4 ≈ helium)
    * @returns {Promise<MediaStream>}   - stream with processed audio track
    */
-  async process (inputStream, pitchFactor = 1.7) {
+  async process (inputStream, pitchFactor = 1.4) {
     // AudioContext must be created (or resumed) from a user-gesture context,
     // so the caller must invoke this from a button click handler.
     this._ctx = new AudioContext()

@@ -1,12 +1,25 @@
 import { useState } from 'react'
+import { CopyIcon, CheckIcon } from '../components/Icons.jsx'
 
 export default function WaitingRoom({ roomCode, onCancel }) {
-  const [copied, setCopied] = useState(false)
+  const [copiedType, setCopiedType] = useState(null) // 'code' | 'url' | null
 
-  const handleCopy = () => {
+  const getRoomUrl = () => {
+    const base = window.location.origin
+    return `${base}?join=${roomCode}`
+  }
+
+  const handleCopyCode = () => {
     navigator.clipboard.writeText(roomCode).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      setCopiedType('code')
+      setTimeout(() => setCopiedType(null), 2000)
+    }).catch(() => {})
+  }
+
+  const handleCopyUrl = () => {
+    navigator.clipboard.writeText(getRoomUrl()).then(() => {
+      setCopiedType('url')
+      setTimeout(() => setCopiedType(null), 2000)
     }).catch(() => {})
   }
 
@@ -29,37 +42,29 @@ export default function WaitingRoom({ roomCode, onCancel }) {
         <div className="stack stack--8 center">
           <h1 className="t-title1">Room Created</h1>
           <p className="t-body t-secondary">
-            Share this code with your friend
+            Share this with your friend
           </p>
         </div>
 
         {/* Code badge */}
         <div className="room-code-badge">
           <div className="room-code-text">{roomCode}</div>
-          <p className="room-code-hint">Tap the code to copy</p>
         </div>
 
-        {/* Copy button */}
-        <button className="copy-btn btn" onClick={handleCopy}>
-          {copied ? (
-            <>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-                <path d="M2 8L6.5 12.5L14 4" stroke="currentColor" strokeWidth="2"
-                      strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              Copied!
-            </>
-          ) : (
-            <>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-                <rect x="5.5" y="5.5" width="9" height="9" rx="2" stroke="currentColor" strokeWidth="1.5"/>
-                <path d="M10.5 5.5V3.5A1.5 1.5 0 0 0 9 2H3.5A1.5 1.5 0 0 0 2 3.5V9A1.5 1.5 0 0 0 3.5 10.5H5.5"
-                      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-              </svg>
-              Copy Code
-            </>
-          )}
-        </button>
+        {/* Copy buttons */}
+        <div className="share-options">
+          <button className="share-btn" onClick={handleCopyCode}>
+            {copiedType === 'code' ? <CheckIcon size={18} /> : <CopyIcon size={18} />}
+            <span>{copiedType === 'code' ? 'Copied!' : 'Copy Code'}</span>
+          </button>
+          
+          <div className="share-divider" />
+          
+          <button className="share-btn" onClick={handleCopyUrl}>
+            {copiedType === 'url' ? <CheckIcon size={18} /> : <LinkIcon size={18} />}
+            <span>{copiedType === 'url' ? 'Copied!' : 'Copy Link'}</span>
+          </button>
+        </div>
 
         {/* Waiting indicator */}
         <div className="stack stack--12 center">
@@ -73,5 +78,16 @@ export default function WaitingRoom({ roomCode, onCancel }) {
 
       </div>
     </div>
+  )
+}
+
+function LinkIcon({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" 
+         stroke="currentColor" strokeWidth="1.75" 
+         strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+    </svg>
   )
 }
