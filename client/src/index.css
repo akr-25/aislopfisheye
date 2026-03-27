@@ -370,6 +370,12 @@ body {
     max-width: 400px;
 }
 
+@media (min-width: 768px) {
+    .card {
+        max-width: 700px;
+    }
+}
+
 /* ── Room code display ────────────────────────────────────────────────── */
 .room-code-badge {
     background: var(--surface-1);
