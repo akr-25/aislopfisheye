@@ -1101,6 +1101,13 @@ body {
 .about-scroll {
     overflow: auto;
     padding-bottom: 32px;
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+}
+
+.about-scroll::-webkit-scrollbar {
+    display: none; /* Chrome, Safari and Opera */
 }
 
 .about-list {
