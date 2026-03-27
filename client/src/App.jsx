@@ -151,6 +151,17 @@ export default function App() {
     async (isHost) => {
       try {
         await getCamera();
+        
+        // Ensure tracks are enabled for the call
+        if (localStreamRef.current) {
+          localStreamRef.current.getAudioTracks().forEach((t) => {
+            t.enabled = audioEnabled;
+          });
+          localStreamRef.current.getVideoTracks().forEach((t) => {
+            t.enabled = videoEnabled;
+          });
+        }
+        
         setupFisheye();
 
         const pc = createPC();
@@ -180,7 +191,7 @@ export default function App() {
         showToast("Camera error: " + err.message);
       }
     },
-    [getCamera, setupFisheye, createPC, addTracks, showToast],
+    [getCamera, setupFisheye, createPC, addTracks, showToast, audioEnabled, videoEnabled],
   );
   startServerCallRef.current = startServerCall;
 

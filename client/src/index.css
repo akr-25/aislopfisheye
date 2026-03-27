@@ -87,11 +87,24 @@ body {
     padding: env(safe-area-inset-top, 20px) 24px
         env(safe-area-inset-bottom, 20px);
     animation: pageFadeIn var(--transition-med) both;
+    overflow: hidden;
 }
 
 .page--top {
     justify-content: flex-start;
     padding-top: max(env(safe-area-inset-top, 20px), 56px);
+}
+
+.page--keyboard-safe {
+    justify-content: flex-start;
+    overflow: hidden;
+}
+
+.page--preview {
+    justify-content: flex-start;
+    padding: max(env(safe-area-inset-top, 16px), 16px) 24px
+        max(env(safe-area-inset-bottom, 16px), 16px);
+    overflow: hidden;
 }
 
 @keyframes pageFadeIn {
@@ -762,6 +775,15 @@ body {
     background: var(--surface-1);
     border-radius: var(--radius-xl);
     overflow: hidden;
+}
+
+/* More padding for desktop */
+@media (min-width: 768px) {
+    .preview-container {
+        max-width: 360px;
+        max-height: 480px;
+        margin: 24px auto;
+    }
 }
 
 .test-hidden-video {
