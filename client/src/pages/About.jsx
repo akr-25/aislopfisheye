@@ -10,7 +10,7 @@ export default function About({ onBack }) {
         </button>
       </div>
 
-      <div className="stack stack--20 max-400 w-full about-scroll">
+      <div className="stack stack--20 about-container w-full about-scroll">
         <div className="stack stack--8">
           <h1 className="t-title1">About FishCall</h1>
           <p className="t-body t-secondary">
