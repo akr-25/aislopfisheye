@@ -1,6 +1,21 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { HeliumAudio } from "./lib/helium.js";
 import { addContact } from "./lib/contacts.js";
+import {
+  isPiPSupported,
+  enterPictureInPicture,
+  exitPictureInPicture,
+  isInPictureInPicture,
+  initInstallPrompt,
+  showInstallPrompt,
+  setupMediaSession,
+  clearMediaSession,
+  saveActiveCall,
+  getActiveCall,
+  clearActiveCall,
+  onVisibilityChange,
+  isStandalone,
+} from "./lib/pwa.js";
 import Home from "./pages/Home.jsx";
 import WaitingRoom from "./pages/WaitingRoom.jsx";
 import JoinRoom from "./pages/JoinRoom.jsx";
@@ -11,6 +26,7 @@ import TestPage from "./pages/TestPage.jsx";
 import PreviewScreen from "./pages/PreviewScreen.jsx";
 import About from "./pages/About.jsx";
 import Toast from "./components/Toast.jsx";
+import InstallBanner from "./components/InstallBanner.jsx";
 import { FisheyeRenderer } from "./lib/fisheye.js";
 
 const ICE_SERVERS = [
@@ -37,6 +53,8 @@ export default function App() {
   const [canRejoin, setCanRejoin] = useState(false);
   const [lastRoomId, setLastRoomId] = useState(null);
   const [pendingAction, setPendingAction] = useState(null); // 'create' | 'join' | { type: 'join', code: string } | { type: 'call', contact: object }
+  const [isInPiP, setIsInPiP] = useState(false);
+  const [showInstallButton, setShowInstallButton] = useState(false);
 
   // ── mutable refs ──────────────────────────────────────────────────────
   const wsRef = useRef(null);
@@ -80,6 +98,24 @@ export default function App() {
       setScreen("preview");
     }
   }, []);
+
+  // ── PWA Install Prompt ─────────────────────────────────────────────────
+  useEffect(() => {
+    const cleanup = initInstallPrompt((available) => {
+      setShowInstallButton(available);
+    });
+    return cleanup;
+  }, []);
+
+  // ── Check for interrupted call on mount ────────────────────────────────
+  useEffect(() => {
+    const activeCall = getActiveCall();
+    if (activeCall) {
+      setLastRoomId(activeCall.roomId);
+      setCanRejoin(true);
+      showToast(`Reconnect to room ${activeCall.roomId}?`);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── toast ─────────────────────────────────────────────────────────────
   const showToast = useCallback((msg) => {
@@ -506,9 +542,119 @@ export default function App() {
     }
   }, [showToast]);
 
+  // ── Picture-in-Picture ─────────────────────────────────────────────────
+  const togglePictureInPicture = useCallback(async () => {
+    const remoteVideo = remoteVideoRef.current;
+    
+    if (!remoteVideo || !isPiPSupported()) {
+      showToast("Picture-in-Picture not supported");
+      return;
+    }
+    
+    try {
+      if (isInPictureInPicture()) {
+        await exitPictureInPicture();
+        setIsInPiP(false);
+      } else {
+        await enterPictureInPicture(remoteVideo);
+        setIsInPiP(true);
+      }
+    } catch (error) {
+      showToast("Failed to toggle PiP");
+      console.error("PiP error:", error);
+    }
+  }, [showToast]);
+
+  // ── Auto PiP on visibility change ──────────────────────────────────────
+  useEffect(() => {
+    if (screen !== "call") return;
+    
+    const cleanup = onVisibilityChange(async (hidden) => {
+      const remoteVideo = remoteVideoRef.current;
+      if (!remoteVideo || !isPiPSupported()) return;
+      
+      if (hidden && !isInPictureInPicture()) {
+        // User switched away - enter PiP
+        try {
+          await enterPictureInPicture(remoteVideo);
+          setIsInPiP(true);
+        } catch (error) {
+          console.log("Auto-PiP failed:", error);
+        }
+      } else if (!hidden && isInPictureInPicture()) {
+        // User returned - exit PiP
+        try {
+          await exitPictureInPicture();
+          setIsInPiP(false);
+        } catch (error) {
+          console.log("Auto exit PiP failed:", error);
+        }
+      }
+    });
+    
+    return cleanup;
+  }, [screen]);
+
+  // ── PiP event listeners ────────────────────────────────────────────────
+  useEffect(() => {
+    const remoteVideo = remoteVideoRef.current;
+    if (!remoteVideo) return;
+    
+    const handleEnterPiP = () => setIsInPiP(true);
+    const handleLeavePiP = () => setIsInPiP(false);
+    
+    remoteVideo.addEventListener("enterpictureinpicture", handleEnterPiP);
+    remoteVideo.addEventListener("leavepictureinpicture", handleLeavePiP);
+    
+    return () => {
+      remoteVideo.removeEventListener("enterpictureinpicture", handleEnterPiP);
+      remoteVideo.removeEventListener("leavepictureinpicture", handleLeavePiP);
+    };
+  }, []);
+
+  // ── Media Session API ──────────────────────────────────────────────────
+  useEffect(() => {
+    if (screen === "call" && peerInfoRef.current) {
+      setupMediaSession({
+        peerName: peerInfoRef.current.name || "Someone",
+        onToggleMute: toggleMute,
+        onToggleCamera: toggleCamera,
+        onHangUp: () => hangUp("home"),
+      });
+    } else {
+      clearMediaSession();
+    }
+  }, [screen, toggleMute, toggleCamera, hangUp]);
+
+  // ── Save active call state ─────────────────────────────────────────────
+  useEffect(() => {
+    if (screen === "call" && roomCode) {
+      saveActiveCall(roomCode);
+    } else {
+      clearActiveCall();
+    }
+  }, [screen, roomCode]);
+
+  // ── Install prompt handler ─────────────────────────────────────────────
+  const handleInstallClick = useCallback(async () => {
+    const result = await showInstallPrompt();
+    if (result.outcome === "accepted") {
+      showToast("Installing FishCall...");
+      setShowInstallButton(false);
+    }
+  }, [showToast]);
+
   // ── render ────────────────────────────────────────────────────────────
   return (
     <div className="app">
+      {/* Install banner - show on all screens except during active call */}
+      {screen !== "call" && !isStandalone && (
+        <InstallBanner
+          showInstallButton={showInstallButton}
+          onInstallClick={handleInstallClick}
+        />
+      )}
+
       {screen === "home" && (
         <Home
           onCreateRoom={() => {
@@ -572,10 +718,12 @@ export default function App() {
         audioEnabled={audioEnabled}
         videoEnabled={videoEnabled}
         heliumEnabled={heliumEnabled}
+        isInPiP={isInPiP}
         onToggleMute={toggleMute}
         onToggleCamera={toggleCamera}
         onFlipCamera={flipCamera}
         onToggleHelium={toggleHelium}
+        onTogglePiP={togglePictureInPicture}
         onHangUp={() => hangUp("home")}
       />
 

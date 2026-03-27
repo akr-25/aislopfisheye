@@ -6,7 +6,9 @@ import {
   FlipCameraIcon,
   PhoneEndIcon,
   HeliumIcon,
+  PictureInPictureIcon,
 } from "../components/Icons.jsx";
+import { isPiPSupported } from "../lib/pwa.js";
 
 export default function CallScreen({
   visible,
@@ -17,12 +19,16 @@ export default function CallScreen({
   audioEnabled,
   videoEnabled,
   heliumEnabled,
+  isInPiP,
   onToggleMute,
   onToggleCamera,
   onFlipCamera,
   onToggleHelium,
+  onTogglePiP,
   onHangUp,
 }) {
+  const pipSupported = isPiPSupported();
+  
   return (
     <div className={`call-screen${visible ? " call-screen--visible" : ""}`}>
       {/* Remote video – fills the screen */}
@@ -100,6 +106,19 @@ export default function CallScreen({
             <FlipCameraIcon size={24} />
             <span className="btn-label">Flip</span>
           </button>
+
+          {/* Picture-in-Picture */}
+          {pipSupported && (
+            <button
+              className={`btn btn-icon${isInPiP ? " btn-icon--active" : ""}`}
+              onClick={onTogglePiP}
+              aria-label={isInPiP ? "Exit Picture-in-Picture" : "Picture-in-Picture"}
+              title="Picture-in-Picture"
+            >
+              <PictureInPictureIcon size={24} />
+              <span className="btn-label">PiP</span>
+            </button>
+          )}
 
           {/* End call */}
           <button

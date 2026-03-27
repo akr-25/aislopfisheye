@@ -149,6 +149,35 @@ export function PhoneEndIcon({ size = 22 }) {
   )
 }
 
+export function PictureInPictureIcon({ size = 22 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...svg}>
+      <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+      <rect x="12" y="9" width="8" height="6" rx="1" ry="1" fill="currentColor" fillOpacity="0.3" />
+    </svg>
+  )
+}
+
+export function InstallIcon({ size = 22 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...svg}>
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
+    </svg>
+  )
+}
+
+export function ShareIcon({ size = 22 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...svg}>
+      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+      <polyline points="16 6 12 2 8 6" />
+      <line x1="12" y1="2" x2="12" y2="15" />
+    </svg>
+  )
+}
+
 export function MicLevelIcon({ size = 22, level = 0 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" {...svg}>

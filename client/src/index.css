@@ -1138,3 +1138,127 @@ body {
     font-size: 0.9em;
     color: #a9d2ff;
 }
+
+/* ── Install Banner ─────────────────────────────────────────────────────── */
+.install-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: var(--surface-glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--separator);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.install-banner-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+}
+
+.install-banner-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: var(--blue);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.install-banner-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.install-banner-text strong {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--label-primary);
+}
+
+.install-banner-text span {
+    font-size: 12px;
+    color: var(--label-secondary);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.install-banner-text span svg {
+    vertical-align: middle;
+}
+
+.install-banner-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.install-banner-close {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 50%;
+    background: var(--surface-3);
+    color: var(--label-secondary);
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background var(--transition-fast);
+}
+
+.install-banner-close:hover {
+    background: var(--surface-2);
+}
+
+.install-banner--ios .install-banner-text span {
+    flex-wrap: wrap;
+}
+
+/* Small button variant */
+.btn.btn-small {
+    padding: 6px 14px;
+    font-size: 14px;
+    height: auto;
+    min-height: 32px;
+}
+
+/* PiP button active state */
+.btn-icon--active {
+    background: var(--blue) !important;
+    color: #fff !important;
+}
+
+/* Adjust page padding when install banner is shown */
+.app:has(.install-banner) .page {
+    padding-top: calc(env(safe-area-inset-top, 20px) + 60px);
+}
