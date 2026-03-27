@@ -87,7 +87,7 @@ body {
     padding: env(safe-area-inset-top, 20px) 24px
         env(safe-area-inset-bottom, 20px);
     animation: pageFadeIn var(--transition-med) both;
-    overflow: hidden;
+    overflow: auto;
 }
 
 .page--top {
@@ -97,14 +97,14 @@ body {
 
 .page--keyboard-safe {
     justify-content: flex-start;
-    overflow: hidden;
+    overflow: auto;
 }
 
 .page--preview {
     justify-content: center;
     padding: max(env(safe-area-inset-top, 16px), 16px) 24px
         max(env(safe-area-inset-bottom, 16px), 16px);
-    overflow: hidden;
+    overflow: auto;
 }
 
 @keyframes pageFadeIn {
