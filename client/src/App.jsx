@@ -4,7 +4,10 @@ import Home from "./pages/Home.jsx";
 import WaitingRoom from "./pages/WaitingRoom.jsx";
 import JoinRoom from "./pages/JoinRoom.jsx";
 import Connecting from "./pages/Connecting.jsx";
+import CallEnded from "./pages/CallEnded.jsx";
 import CallScreen from "./pages/CallScreen.jsx";
+import TestPage from "./pages/TestPage.jsx";
+import PreviewScreen from "./pages/PreviewScreen.jsx";
 import Toast from "./components/Toast.jsx";
 import { FisheyeRenderer } from "./lib/fisheye.js";
 
@@ -22,39 +25,33 @@ const getWsUrl = () => {
 
 export default function App() {
   // ── UI state ──────────────────────────────────────────────────────────
-  const [screen, setScreen] = useState("home"); // 'home' | 'waiting' | 'joining' | 'connecting' | 'call'
+  const [screen, setScreen] = useState("home");
   const [roomCode, setRoomCode] = useState("");
   const [callStatus, setCallStatus] = useState("Connecting…");
-  const [fisheyeEnabled, setFisheyeEnabled] = useState(true);
-  const [fisheyeStrength, setFisheyeStrength] = useState(0.5);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [videoEnabled, setVideoEnabled] = useState(true);
-  const [toast, setToast] = useState(null);
   const [heliumEnabled, setHeliumEnabled] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [canRejoin, setCanRejoin] = useState(false);
+  const [lastRoomId, setLastRoomId] = useState(null);
+  const [pendingAction, setPendingAction] = useState(null); // 'create' | 'join' | { type: 'join', code: string }
 
-  // ── mutable refs (don't trigger re-renders) ───────────────────────────
+  // ── mutable refs ──────────────────────────────────────────────────────
   const wsRef = useRef(null);
   const pcRef = useRef(null);
   const localStreamRef = useRef(null);
   const fisheyeRef = useRef(null);
+  const heliumRef = useRef(null);
   const uuidRef = useRef(null);
   const toastTimerRef = useRef(null);
   const facingModeRef = useRef("user");
-  const heliumRef = useRef(null);
 
-  // mirror state → ref so async callbacks always see latest value
-  const fisheyeEnabledRef = useRef(true);
-  const fisheyeStrengthRef = useRef(0.5);
-  fisheyeEnabledRef.current = fisheyeEnabled;
-  fisheyeStrengthRef.current = fisheyeStrength;
-
-  // CallScreen video/canvas elements – always in DOM (hidden when not in call)
+  // CallScreen video/canvas – always in DOM so refs are always populated
   const remoteVideoRef = useRef(null);
   const localCanvasRef = useRef(null);
   const localHiddenVideoRef = useRef(null);
 
-  // "latest callback" refs – allows WS/WebRTC event handlers to call the
-  // most-recently-rendered version without stale closures
+  // "latest callback" refs – avoids stale closures in WS/WebRTC handlers
   const handleWSMessageRef = useRef(null);
   const startServerCallRef = useRef(null);
   const handleSignalRef = useRef(null);
@@ -77,7 +74,7 @@ export default function App() {
     toastTimerRef.current = setTimeout(() => setToast(null), 2800);
   }, []);
 
-  // ── camera ───────────────────────────────────────────────────────────
+  // ── camera ────────────────────────────────────────────────────────────
   const getCamera = useCallback(async () => {
     if (localStreamRef.current) return localStreamRef.current;
     const stream = await navigator.mediaDevices.getUserMedia({
@@ -92,7 +89,7 @@ export default function App() {
     return stream;
   }, []);
 
-  // ── WebRTC peer connection ────────────────────────────────────────────
+  // ── WebRTC peer connection ─────────────────────────────────────────────
   const createPC = useCallback(() => {
     const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
 
@@ -100,7 +97,7 @@ export default function App() {
       const st = pc.iceConnectionState;
       if (st === "connected" || st === "completed") setCallStatus("");
       else if (st === "disconnected" || st === "failed")
-        setCallStatus("Connection lost");
+        setCallStatus("Reconnecting…");
       else setCallStatus("Connecting…");
     };
 
@@ -123,7 +120,7 @@ export default function App() {
     if (audioTrack) pc.addTrack(audioTrack, fishStream);
   }, []);
 
-  // ── fisheye setup (uses always-in-DOM CallScreen canvas/video) ────────
+  // ── fisheye – always on at full strength ─────────────────────────────
   const setupFisheye = useCallback(() => {
     const canvas = localCanvasRef.current;
     const video = localHiddenVideoRef.current;
@@ -132,11 +129,11 @@ export default function App() {
     video.play().catch(() => {});
     if (fisheyeRef.current) fisheyeRef.current.stop();
     fisheyeRef.current = new FisheyeRenderer(video, canvas);
-    fisheyeRef.current.setStrength(fisheyeStrengthRef.current);
+    fisheyeRef.current.setStrength(1.0);
     fisheyeRef.current.start();
   }, []);
 
-  // ── start call (host = true → creates offer; false → waits for offer) ─
+  // ── start call ────────────────────────────────────────────────────────
   const startServerCall = useCallback(
     async (isHost) => {
       try {
@@ -176,13 +173,11 @@ export default function App() {
 
   // ── WebRTC signal handler ─────────────────────────────────────────────
   const handleSignal = useCallback(async (data) => {
-    // Guest: first signal is the offer – boot up call stack first
     if (!pcRef.current && data.type === "offer") {
       await startServerCallRef.current(false);
     }
     const pc = pcRef.current;
     if (!pc) return;
-
     try {
       if (data.type === "offer") {
         await pc.setRemoteDescription(new RTCSessionDescription(data));
@@ -200,7 +195,6 @@ export default function App() {
         await pc.addIceCandidate(new RTCIceCandidate(data));
       }
     } catch (err) {
-      // ICE errors are usually benign
       console.warn("signal error", err);
     }
   }, []);
@@ -212,30 +206,41 @@ export default function App() {
       switch (msg.type) {
         case "room-created":
           setRoomCode(msg.roomId);
+          setLastRoomId(msg.roomId);
           setScreen("waiting");
           break;
         case "room-joined":
-          // Guest confirmed — transition to connecting screen while waiting for host's offer
+          setLastRoomId(msg.roomId);
           setScreen("connecting");
           break;
+        case "room-rejoined":
+          setLastRoomId(msg.roomId);
+          setScreen("connecting");
+          showToast("Rejoined room");
+          break;
         case "peer-joined":
-          startServerCallRef.current(true); // host creates offer
+        case "peer-rejoined":
+          startServerCallRef.current(true);
           break;
         case "signal":
           handleSignalRef.current(msg.data);
           break;
         case "peer-left":
-          showToast("Peer disconnected");
-          hangUpRef.current();
+          setCanRejoin(msg.canRejoin || false);
+          setLastRoomId(msg.roomId || lastRoomId);
+          hangUpRef.current("call-ended");
           break;
         case "error":
           showToast(msg.message);
+          if (msg.message === "Room expired") {
+            setCanRejoin(false);
+          }
           break;
         default:
           break;
       }
     },
-    [showToast],
+    [showToast, lastRoomId],
   );
   handleWSMessageRef.current = handleWSMessage;
 
@@ -261,7 +266,7 @@ export default function App() {
   }, []);
 
   // ── hang up / cleanup ─────────────────────────────────────────────────
-  const hangUp = useCallback(() => {
+  const hangUp = useCallback((goTo = "home") => {
     if (pcRef.current) {
       pcRef.current.close();
       pcRef.current = null;
@@ -281,13 +286,11 @@ export default function App() {
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
     if (localHiddenVideoRef.current)
       localHiddenVideoRef.current.srcObject = null;
-    setScreen("home");
+    setScreen(goTo);
     setRoomCode("");
     setCallStatus("Connecting…");
     setAudioEnabled(true);
     setVideoEnabled(true);
-    setFisheyeEnabled(true);
-    setFisheyeStrength(0.5);
     setHeliumEnabled(false);
   }, []);
   hangUpRef.current = hangUp;
@@ -314,6 +317,42 @@ export default function App() {
     [connectWS, showToast],
   );
 
+  const rejoinRoom = useCallback(
+    (roomId) => {
+      if (!roomId) return;
+      const ws = connectWS();
+      const send = () =>
+        ws.send(JSON.stringify({ type: "rejoin-room", roomId }));
+      if (ws.readyState === 1) send();
+      else ws.addEventListener("open", send, { once: true });
+    },
+    [connectWS],
+  );
+
+  // ── preview flow handlers ─────────────────────────────────────────────
+  const handlePreviewReady = useCallback(
+    (stream, settings) => {
+      // Use the stream from preview
+      localStreamRef.current = stream;
+      setAudioEnabled(settings.audioEnabled);
+      setVideoEnabled(settings.videoEnabled);
+
+      // Execute the pending action
+      if (pendingAction === "create") {
+        createRoom();
+      } else if (pendingAction?.type === "join") {
+        joinRoom(pendingAction.code);
+      }
+      setPendingAction(null);
+    },
+    [pendingAction, createRoom, joinRoom],
+  );
+
+  const handlePreviewCancel = useCallback(() => {
+    setPendingAction(null);
+    setScreen("home");
+  }, []);
+
   // ── call controls ─────────────────────────────────────────────────────
   const toggleMute = useCallback(() => {
     if (!localStreamRef.current) return;
@@ -333,36 +372,6 @@ export default function App() {
     setVideoEnabled(next);
   }, [videoEnabled]);
 
-  const toggleFisheye = useCallback(() => {
-    const next = !fisheyeEnabledRef.current;
-    setFisheyeEnabled(next);
-    if (fisheyeRef.current) {
-      fisheyeRef.current.setStrength(next ? fisheyeStrengthRef.current : 0);
-    }
-    if (pcRef.current) {
-      const sender = pcRef.current
-        .getSenders()
-        .find((s) => s.track?.kind === "video");
-      if (sender) {
-        if (next && fisheyeRef.current) {
-          sender.replaceTrack(
-            fisheyeRef.current.getStream(30).getVideoTracks()[0],
-          );
-        } else if (localStreamRef.current) {
-          sender.replaceTrack(localStreamRef.current.getVideoTracks()[0]);
-        }
-      }
-    }
-  }, []);
-
-  const handleStrengthChange = useCallback((v) => {
-    setFisheyeStrength(v);
-    fisheyeStrengthRef.current = v;
-    if (fisheyeRef.current && fisheyeEnabledRef.current) {
-      fisheyeRef.current.setStrength(v);
-    }
-  }, []);
-
   const toggleHelium = useCallback(async () => {
     const next = !heliumEnabled;
     try {
@@ -371,7 +380,6 @@ export default function App() {
         const helium = new HeliumAudio();
         const processed = await helium.process(localStreamRef.current);
         heliumRef.current = helium;
-        // Replace the audio track being sent to the peer
         if (pcRef.current) {
           const audioTrack = processed.getAudioTracks()[0];
           const sender = pcRef.current
@@ -384,7 +392,6 @@ export default function App() {
           heliumRef.current.stop();
           heliumRef.current = null;
         }
-        // Restore the original raw audio track
         if (pcRef.current && localStreamRef.current) {
           const audioTrack = localStreamRef.current.getAudioTracks()[0];
           const sender = pcRef.current
@@ -423,21 +430,17 @@ export default function App() {
         const vSender = pcRef.current
           .getSenders()
           .find((s) => s.track?.kind === "video");
-        if (vSender) {
-          if (fisheyeEnabledRef.current && fisheyeRef.current) {
-            vSender.replaceTrack(
-              fisheyeRef.current.getStream(30).getVideoTracks()[0],
-            );
-          } else {
-            vSender.replaceTrack(stream.getVideoTracks()[0]);
-          }
+        if (vSender && fisheyeRef.current) {
+          vSender.replaceTrack(
+            fisheyeRef.current.getStream(30).getVideoTracks()[0],
+          );
         }
         const aSender = pcRef.current
           .getSenders()
           .find((s) => s.track?.kind === "audio");
         if (aSender) aSender.replaceTrack(stream.getAudioTracks()[0]);
       }
-    } catch (err) {
+    } catch {
       showToast("Could not flip camera");
     }
   }, [showToast]);
@@ -447,41 +450,64 @@ export default function App() {
     <div className="app">
       {screen === "home" && (
         <Home
-          onCreateRoom={createRoom}
+          onCreateRoom={() => {
+            setPendingAction("create");
+            setScreen("preview");
+          }}
           onJoinRoom={() => setScreen("joining")}
+          onTest={() => setScreen("test")}
+        />
+      )}
+      {screen === "test" && <TestPage onBack={() => setScreen("home")} />}
+      {screen === "preview" && (
+        <PreviewScreen
+          onReady={handlePreviewReady}
+          onCancel={handlePreviewCancel}
+          actionLabel={pendingAction === "create" ? "Create Room" : "Join Room"}
+        />
+      )}
+      {screen === "waiting" && (
+        <WaitingRoom roomCode={roomCode} onCancel={() => hangUp("home")} />
+      )}
+      {screen === "joining" && (
+        <JoinRoom
+          onJoin={(code) => {
+            setPendingAction({ type: "join", code });
+            setScreen("preview");
+          }}
+          onCancel={() => setScreen("home")}
+        />
+      )}
+      {screen === "connecting" && (
+        <Connecting onCancel={() => hangUp("home")} />
+      )}
+      {screen === "call-ended" && (
+        <CallEnded
+          onHome={() => {
+            setCanRejoin(false);
+            setScreen("home");
+          }}
+          onRejoin={rejoinRoom}
+          canRejoin={canRejoin}
+          roomId={lastRoomId}
         />
       )}
 
-      {screen === "waiting" && (
-        <WaitingRoom roomCode={roomCode} onCancel={hangUp} />
-      )}
-
-      {screen === "joining" && (
-        <JoinRoom onJoin={joinRoom} onCancel={() => setScreen("home")} />
-      )}
-
-      {screen === "connecting" && <Connecting onCancel={hangUp} />}
-
-      {/* CallScreen is always rendered so canvas/video refs are always in DOM.
-          Visibility is controlled via the `visible` prop (CSS display toggle). */}
+      {/* Always rendered so canvas/video refs stay in DOM */}
       <CallScreen
         visible={screen === "call"}
         remoteVideoRef={remoteVideoRef}
         localCanvasRef={localCanvasRef}
         localHiddenVideoRef={localHiddenVideoRef}
         callStatus={callStatus}
-        fisheyeEnabled={fisheyeEnabled}
-        fisheyeStrength={fisheyeStrength}
         audioEnabled={audioEnabled}
         videoEnabled={videoEnabled}
         heliumEnabled={heliumEnabled}
-        onToggleFisheye={toggleFisheye}
-        onStrengthChange={handleStrengthChange}
         onToggleMute={toggleMute}
         onToggleCamera={toggleCamera}
         onFlipCamera={flipCamera}
         onToggleHelium={toggleHelium}
-        onHangUp={hangUp}
+        onHangUp={() => hangUp("home")}
       />
 
       <Toast message={toast} />

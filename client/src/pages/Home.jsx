@@ -1,4 +1,4 @@
-export default function Home({ onCreateRoom, onJoinRoom }) {
+export default function Home({ onCreateRoom, onJoinRoom, onTest }) {
   return (
     <div className="page">
       <div className="stack stack--40 center max-400">
@@ -22,6 +22,11 @@ export default function Home({ onCreateRoom, onJoinRoom }) {
             Join a Room
           </button>
         </div>
+
+        {/* Test button */}
+        <button className="btn btn-ghost" onClick={onTest}>
+          Test Camera & Mic
+        </button>
 
       </div>
     </div>

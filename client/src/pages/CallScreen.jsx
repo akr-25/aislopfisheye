@@ -1,16 +1,22 @@
+import {
+  MicIcon,
+  MicOffIcon,
+  VideoIcon,
+  VideoOffIcon,
+  FlipCameraIcon,
+  PhoneEndIcon,
+  HeliumIcon,
+} from "../components/Icons.jsx";
+
 export default function CallScreen({
   visible,
   remoteVideoRef,
   localCanvasRef,
   localHiddenVideoRef,
   callStatus,
-  fisheyeEnabled,
-  fisheyeStrength,
   audioEnabled,
   videoEnabled,
   heliumEnabled,
-  onToggleFisheye,
-  onStrengthChange,
   onToggleMute,
   onToggleCamera,
   onFlipCamera,
@@ -49,31 +55,6 @@ export default function CallScreen({
       {/* Controls bar */}
       <div className="call-controls">
         <div className="call-controls-row">
-          {/* Fisheye toggle + slider */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <button
-              className={`btn btn-icon${fisheyeEnabled ? " btn-icon--active" : ""}`}
-              onClick={onToggleFisheye}
-              aria-label="Toggle fisheye"
-              title="Fisheye"
-            >
-              <span>🐟</span>
-              <span className="btn-label">Fisheye</span>
-            </button>
-
-            {fisheyeEnabled && (
-              <input
-                className="fisheye-slider"
-                type="range"
-                min="0"
-                max="100"
-                value={Math.round(fisheyeStrength * 100)}
-                onChange={(e) => onStrengthChange(e.target.value / 100)}
-                aria-label="Fisheye strength"
-              />
-            )}
-          </div>
-
           {/* Helium voice */}
           <button
             className={`btn btn-icon${heliumEnabled ? " btn-icon--helium" : ""}`}
@@ -81,7 +62,7 @@ export default function CallScreen({
             aria-label={heliumEnabled ? "Helium off" : "Helium voice"}
             title="Helium"
           >
-            <span>🎈</span>
+            <HeliumIcon size={24} />
             <span className="btn-label">Helium</span>
           </button>
 
@@ -92,7 +73,7 @@ export default function CallScreen({
             aria-label={audioEnabled ? "Mute" : "Unmute"}
             title={audioEnabled ? "Mute" : "Unmute"}
           >
-            <span>{audioEnabled ? "🎤" : "🔇"}</span>
+            {audioEnabled ? <MicIcon size={24} /> : <MicOffIcon size={24} />}
             <span className="btn-label">
               {audioEnabled ? "Mute" : "Unmute"}
             </span>
@@ -105,7 +86,7 @@ export default function CallScreen({
             aria-label={videoEnabled ? "Camera off" : "Camera on"}
             title="Camera"
           >
-            <span>{videoEnabled ? "📷" : "🚫"}</span>
+            {videoEnabled ? <VideoIcon size={24} /> : <VideoOffIcon size={24} />}
             <span className="btn-label">Camera</span>
           </button>
 
@@ -116,7 +97,7 @@ export default function CallScreen({
             aria-label="Flip camera"
             title="Flip"
           >
-            <span>🔄</span>
+            <FlipCameraIcon size={24} />
             <span className="btn-label">Flip</span>
           </button>
 
@@ -127,7 +108,7 @@ export default function CallScreen({
             aria-label="End call"
             title="End call"
           >
-            <span>📞</span>
+            <PhoneEndIcon size={26} />
           </button>
         </div>
       </div>

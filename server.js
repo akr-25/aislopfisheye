@@ -26,9 +26,24 @@ app.use(express.static(path.join(__dirname, "public")));
 
 const rooms = new Map();
 const peers = new Map(); // uuid → ws
+const ROOM_TIMEOUT = 30000; // 30 seconds grace period for rejoin
 
 function roomCode() {
   return crypto.randomBytes(3).toString("hex").toUpperCase();
+}
+
+// Clean up expired rooms
+function cleanupRoom(roomId) {
+  const room = rooms.get(roomId);
+  if (!room) return;
+  
+  // Check if both peers are disconnected and timeout has passed
+  const hostConnected = room.host && room.host.readyState === 1;
+  const guestConnected = room.guest && room.guest.readyState === 1;
+  
+  if (!hostConnected && !guestConnected) {
+    rooms.delete(roomId);
+  }
 }
 
 wss.on("connection", (ws) => {
@@ -58,7 +73,7 @@ wss.on("connection", (ws) => {
       /* ── rooms ── */
       case "create-room": {
         const id = roomCode();
-        rooms.set(id, { host: ws, guest: null });
+        rooms.set(id, { host: ws, guest: null, hostUuid: ws.uuid, guestUuid: null });
         ws.roomId = id;
         ws.send(JSON.stringify({ type: "room-created", roomId: id }));
         break;
@@ -70,11 +85,12 @@ wss.on("connection", (ws) => {
           return ws.send(
             JSON.stringify({ type: "error", message: "Room not found" }),
           );
-        if (room.guest)
+        if (room.guest && room.guest.readyState === 1)
           return ws.send(
             JSON.stringify({ type: "error", message: "Room is full" }),
           );
         room.guest = ws;
+        room.guestUuid = ws.uuid;
         ws.roomId = msg.roomId;
         ws.send(JSON.stringify({ type: "room-joined", roomId: msg.roomId }));
         room.host.send(
@@ -131,6 +147,44 @@ wss.on("connection", (ws) => {
         break;
       }
 
+      /* ── rejoin an existing room ── */
+      case "rejoin-room": {
+        const room = rooms.get(msg.roomId);
+        if (!room) {
+          return ws.send(
+            JSON.stringify({ type: "error", message: "Room expired" }),
+          );
+        }
+        
+        // Determine if this peer was host or guest based on uuid
+        const wasHost = room.hostUuid === ws.uuid;
+        const wasGuest = room.guestUuid === ws.uuid;
+        
+        if (!wasHost && !wasGuest) {
+          return ws.send(
+            JSON.stringify({ type: "error", message: "Not a member of this room" }),
+          );
+        }
+        
+        // Rejoin as appropriate role
+        if (wasHost) {
+          room.host = ws;
+        } else {
+          room.guest = ws;
+        }
+        ws.roomId = msg.roomId;
+        
+        // Notify of rejoin
+        ws.send(JSON.stringify({ type: "room-rejoined", roomId: msg.roomId }));
+        
+        // Notify the other peer if connected
+        const other = wasHost ? room.guest : room.host;
+        if (other && other.readyState === 1) {
+          other.send(JSON.stringify({ type: "peer-rejoined", nickname: ws.nickname }));
+        }
+        break;
+      }
+
       /* ── signaling relay ── */
       case "signal": {
         const room = rooms.get(ws.roomId);
@@ -151,9 +205,10 @@ wss.on("connection", (ws) => {
       if (room) {
         const other = room.host === ws ? room.guest : room.host;
         if (other && other.readyState === 1) {
-          other.send(JSON.stringify({ type: "peer-left" }));
+          other.send(JSON.stringify({ type: "peer-left", canRejoin: true, roomId: ws.roomId }));
         }
-        rooms.delete(ws.roomId);
+        // Don't delete room immediately - allow rejoin for 30 seconds
+        setTimeout(() => cleanupRoom(ws.roomId), ROOM_TIMEOUT);
       }
     }
   });
