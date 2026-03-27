@@ -531,6 +531,7 @@ body {
     height: 100%;
     object-fit: cover;
     display: block;
+    transform: scaleX(-1);
 }
 
 .call-status-label {
@@ -1035,4 +1036,30 @@ body {
 .contact-remove:hover {
     background: var(--surface-3);
     color: var(--red);
+}
+
+/* ── About page ─────────────────────────────────────────────────────────── */
+.about-scroll {
+    overflow: auto;
+    padding-bottom: 32px;
+}
+
+.about-list {
+    margin-left: 18px;
+    display: grid;
+    gap: 10px;
+    color: var(--label-secondary);
+    font-size: 15px;
+    line-height: 1.45;
+}
+
+.about-list strong {
+    color: var(--label-primary);
+}
+
+.about-list code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+        "Liberation Mono", "Courier New", monospace;
+    font-size: 0.9em;
+    color: #a9d2ff;
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { getContacts, removeContact, formatRelativeTime } from '../lib/contacts.js'
 
-export default function Home({ onCreateRoom, onJoinRoom, onTest, onCallContact }) {
+export default function Home({ onCreateRoom, onJoinRoom, onTest, onCallContact, onAbout }) {
   const [contacts, setContacts] = useState([])
   const [showAll, setShowAll] = useState(false)
 
@@ -90,10 +90,14 @@ export default function Home({ onCreateRoom, onJoinRoom, onTest, onCallContact }
           </div>
         )}
 
-        {/* Test button */}
-        <button className="btn btn-ghost" onClick={onTest}>
-          Test Camera & Mic
-        </button>
+        <div className="stack stack--8 center">
+          <button className="btn btn-ghost" onClick={onTest}>
+            Test Camera & Mic
+          </button>
+          <button className="btn btn-ghost" onClick={onAbout}>
+            About FishCall
+          </button>
+        </div>
 
       </div>
     </div>

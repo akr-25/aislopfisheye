@@ -9,6 +9,7 @@ import CallEnded from "./pages/CallEnded.jsx";
 import CallScreen from "./pages/CallScreen.jsx";
 import TestPage from "./pages/TestPage.jsx";
 import PreviewScreen from "./pages/PreviewScreen.jsx";
+import About from "./pages/About.jsx";
 import Toast from "./components/Toast.jsx";
 import { FisheyeRenderer } from "./lib/fisheye.js";
 
@@ -516,6 +517,7 @@ export default function App() {
           }}
           onJoinRoom={() => setScreen("joining")}
           onTest={() => setScreen("test")}
+          onAbout={() => setScreen("about")}
           onCallContact={(contact) => {
             // Start a call to this contact by joining a new room
             // For now, just create a room (contact calling needs more infra)
@@ -524,6 +526,7 @@ export default function App() {
           }}
         />
       )}
+      {screen === "about" && <About onBack={() => setScreen("home")} />}
       {screen === "test" && <TestPage onBack={() => setScreen("home")} />}
       {screen === "preview" && (
         <PreviewScreen
