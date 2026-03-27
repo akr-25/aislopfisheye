@@ -93,12 +93,22 @@ wss.on("connection", (ws) => {
         room.guestUuid = ws.uuid;
         ws.roomId = msg.roomId;
         ws.send(JSON.stringify({ type: "room-joined", roomId: msg.roomId }));
-        room.host.send(
-          JSON.stringify({
-            type: "peer-joined",
-            nickname: ws.nickname || "Anonymous",
-          }),
-        );
+        
+        // Send peer info to both parties for contact saving
+        ws.send(JSON.stringify({ 
+          type: "peer-info", 
+          uuid: room.hostUuid, 
+          nickname: room.host.nickname || "Anonymous" 
+        }));
+        room.host.send(JSON.stringify({
+          type: "peer-joined",
+          nickname: ws.nickname || "Anonymous",
+        }));
+        room.host.send(JSON.stringify({ 
+          type: "peer-info", 
+          uuid: ws.uuid, 
+          nickname: ws.nickname || "Anonymous" 
+        }));
         break;
       }
 
@@ -127,14 +137,25 @@ wss.on("connection", (ws) => {
         const room = rooms.get(msg.roomId);
         if (!room) return;
         room.guest = ws;
+        room.guestUuid = ws.uuid;
         ws.roomId = msg.roomId;
         ws.send(JSON.stringify({ type: "room-joined", roomId: msg.roomId }));
-        room.host.send(
-          JSON.stringify({
-            type: "peer-joined",
-            nickname: ws.nickname || "Anonymous",
-          }),
-        );
+        
+        // Send peer info to both parties for contact saving
+        ws.send(JSON.stringify({ 
+          type: "peer-info", 
+          uuid: room.hostUuid, 
+          nickname: room.host.nickname || "Anonymous" 
+        }));
+        room.host.send(JSON.stringify({
+          type: "peer-joined",
+          nickname: ws.nickname || "Anonymous",
+        }));
+        room.host.send(JSON.stringify({ 
+          type: "peer-info", 
+          uuid: ws.uuid, 
+          nickname: ws.nickname || "Anonymous" 
+        }));
         break;
       }
 
@@ -177,10 +198,13 @@ wss.on("connection", (ws) => {
         // Notify of rejoin
         ws.send(JSON.stringify({ type: "room-rejoined", roomId: msg.roomId }));
         
-        // Notify the other peer if connected
+        // Notify the other peer if connected and send peer info
         const other = wasHost ? room.guest : room.host;
+        const otherUuid = wasHost ? room.guestUuid : room.hostUuid;
         if (other && other.readyState === 1) {
           other.send(JSON.stringify({ type: "peer-rejoined", nickname: ws.nickname }));
+          other.send(JSON.stringify({ type: "peer-info", uuid: ws.uuid, nickname: ws.nickname }));
+          ws.send(JSON.stringify({ type: "peer-info", uuid: otherUuid, nickname: other.nickname }));
         }
         break;
       }
