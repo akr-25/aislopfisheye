@@ -96,7 +96,9 @@ export default function PreviewScreen({ onReady, onCancel, actionLabel = "Join R
 
   const handleReady = useCallback(() => {
     cleanup();
-    onReady(streamRef.current, { audioEnabled, videoEnabled });
+    const stream = streamRef.current;
+    streamRef.current = null; // Prevent cleanup from stopping tracks
+    onReady(stream, { audioEnabled, videoEnabled });
   }, [cleanup, onReady, audioEnabled, videoEnabled]);
 
   const handleCancel = useCallback(() => {
