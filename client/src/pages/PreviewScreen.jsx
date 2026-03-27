@@ -138,7 +138,7 @@ export default function PreviewScreen({ onReady, onCancel, actionLabel = "Join R
       </div>
 
       <div className="preview-layout">
-        <div className="stack stack--4 center">
+        <div className="stack stack--8 center">
           <h1 className="t-title2">Camera Preview</h1>
           <p className="t-subhead t-secondary">Check how you look before joining</p>
         </div>
