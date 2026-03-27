@@ -695,6 +695,9 @@ body {
 .stack--4 {
     gap: 4px;
 }
+.stack--6 {
+    gap: 6px;
+}
 .stack--8 {
     gap: 8px;
 }
@@ -768,6 +771,14 @@ body {
 }
 
 /* ── Test Page ────────────────────────────────────────────────────────── */
+.preview-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding-top: 24px;
+    width: 100%;
+}
+
 .test-preview,
 .preview-container {
     position: relative;
@@ -784,12 +795,14 @@ body {
     .preview-container {
         max-width: 340px;
         max-height: 450px;
-        margin: 32px auto;
+        margin: 0 auto;
     }
     
     .preview-layout {
         max-width: 400px;
         margin: 0 auto;
+        gap: 24px;
+        padding-top: 32px;
     }
 }
 
@@ -881,13 +894,38 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.preview-bottom {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
 }
 
 .btn-icon--sm {
     width: 48px;
     height: 48px;
     font-size: 20px;
+}
+
+/* Mobile optimization for preview page */
+@media (max-width: 767px) {
+    .preview-layout {
+        gap: 16px;
+        padding-top: 16px;
+    }
+    
+    .preview-container {
+        max-height: 45vh;
+    }
+    
+    .preview-toggles {
+        gap: 12px;
+        margin-bottom: 16px;
+    }
 }
 
 /* ── Call Ended with Rejoin ───────────────────────────────────────────── */
