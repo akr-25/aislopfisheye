@@ -309,6 +309,12 @@ export default function App() {
     }
     peerInfoRef.current = null;
 
+    // Close WebSocket connection
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+    
     if (pcRef.current) {
       pcRef.current.close();
       pcRef.current = null;
