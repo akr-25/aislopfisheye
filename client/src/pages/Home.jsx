@@ -18,7 +18,7 @@ export default function Home({ onCreateRoom, onJoinRoom, onTest, onCallContact }
   const displayContacts = showAll ? contacts : contacts.slice(0, 3)
 
   return (
-    <div className="page page--top" style={{ justifyContent: 'flex-start', paddingTop: 60 }}>
+    <div className="page">
       <div className="stack stack--32 center max-400 w-full">
 
         {/* Brand */}

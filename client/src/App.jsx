@@ -304,11 +304,14 @@ export default function App() {
   // ── hang up / cleanup ─────────────────────────────────────────────────
   const hangUp = useCallback((goTo = "home") => {
     // Save contact if we had a call with someone
-    if (peerInfoRef.current?.id && goTo === "call-ended") {
+    if (peerInfoRef.current?.id) {
       addContact(peerInfoRef.current.id, peerInfoRef.current.name);
     }
     peerInfoRef.current = null;
 
+    // Store room ID for potential rejoin before clearing
+    const currentRoomId = roomCode;
+    
     // Close WebSocket connection
     if (wsRef.current) {
       wsRef.current.close();
@@ -334,13 +337,22 @@ export default function App() {
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
     if (localHiddenVideoRef.current)
       localHiddenVideoRef.current.srcObject = null;
-    setScreen(goTo);
+    
+    // Enable rejoin for manual hangup too
+    if (currentRoomId && goTo === "home") {
+      setCanRejoin(true);
+      setLastRoomId(currentRoomId);
+      setScreen("call-ended");
+    } else {
+      setScreen(goTo);
+    }
+    
     setRoomCode("");
     setCallStatus("Connecting…");
     setAudioEnabled(true);
     setVideoEnabled(true);
     setHeliumEnabled(false);
-  }, []);
+  }, [roomCode]);
   hangUpRef.current = hangUp;
 
   // ── room actions ──────────────────────────────────────────────────────
@@ -504,6 +516,12 @@ export default function App() {
           }}
           onJoinRoom={() => setScreen("joining")}
           onTest={() => setScreen("test")}
+          onCallContact={(contact) => {
+            // Start a call to this contact by joining a new room
+            // For now, just create a room (contact calling needs more infra)
+            setPendingAction("create");
+            setScreen("preview");
+          }}
         />
       )}
       {screen === "test" && <TestPage onBack={() => setScreen("home")} />}
